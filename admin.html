@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>به‌روزرسانی اطلاعات دامدار</title>
+<meta name="theme-color" content="#1f7a4d">
+<link rel="icon" href="./icon-192.png">
+<link rel="stylesheet" href="./common.css">
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>🔒 به‌روزرسانی اطلاعات دامدار</h1>
+    <p>این صفحه فقط برای مدیریت مرکز است — لینکش را در اختیار کسی قرار ندهید</p>
+  </header>
+
+  <div id="lockScreen" class="card locked-box">
+    <p>برای ورود به بخش به‌روزرسانی، رمز مدیر را وارد کنید</p>
+    <input type="password" id="adminPin" placeholder="رمز عبور">
+    <button class="btn-primary" onclick="tryUnlock()">ورود</button>
+    <div class="status err" id="lockStatus"></div>
+  </div>
+
+  <div id="adminPanel" class="hidden">
+    <div class="card">
+      <label>جستجوی دامدار برای ویرایش (نام، نام خانوادگی، کد ملی یا موبایل)</label>
+      <input type="text" id="adminSearchInput" placeholder="مثلاً: احمدی یا 09123456789">
+      <button class="btn-primary" onclick="doAdminSearch()">جستجو</button>
+      <div class="status" id="adminSearchStatus"></div>
+      <div class="top-actions">
+        <button class="link-btn" onclick="openNewRecordForm()">+ ثبت دامدار جدید</button>
+      </div>
+    </div>
+    <div id="adminResults"></div>
+    <div id="editFormWrap"></div>
+
+    <div class="card">
+      <h3 style="margin-top:0;font-size:1rem;color:var(--primary-dark);">وارد کردن گروهی از فایل اکسل</h3>
+      <p style="font-size:.82rem;color:var(--muted);margin-top:0;">
+        یک فایل اکسل (xlsx) با ستون‌های زیر انتخاب کن. اگر کد ملی یا موبایل یک ردیف با رکورد موجود یکی باشد، آن رکورد به‌روزرسانی می‌شود؛ در غیر این صورت دامدار جدید ثبت می‌شود.
+      </p>
+      <button class="btn-secondary btn-small" onclick="downloadTemplate()">دانلود قالب اکسل نمونه</button>
+      <div style="height:10px;"></div>
+      <label>انتخاب فایل اکسل</label>
+      <input type="file" id="excelFile" accept=".xlsx,.xls,.csv">
+      <button class="btn-primary" onclick="handleExcelImport()">شروع وارد کردن اطلاعات</button>
+      <div class="status" id="excelStatus"></div>
+      <div id="excelSummary"></div>
+    </div>
+  </div>
+</div>
+
+<script src="./common.js"></script>
+<script src="./xlsx.full.min.js"></script>
+<script>
+/* رمز ورود به این صفحه — حتماً به رمز دلخواه خودت تغییرش بده */
+const ADMIN_PIN = "1234";
+
+const LABEL_TO_FIELD = {};
+Object.keys(FIELD_LABELS).forEach(key => { LABEL_TO_FIELD[FIELD_LABELS[key]] = key; });
+
+function tryUnlock(){
+  const pin = document.getElementById("adminPin").value;
+  if(pin === ADMIN_PIN){
+    document.getElementById("lockScreen").classList.add("hidden");
+    document.getElementById("adminPanel").classList.remove("hidden");
+  }else{
+    document.getElementById("lockStatus").textContent = "رمز اشتباه است.";
+  }
+}
+
+async function doAdminSearch(){
+  const q = document.getElementById("adminSearchInput").value.trim();
+  const statusEl = document.getElementById("adminSearchStatus");
+  const resultsEl = document.getElementById("adminResults");
+  document.getElementById("editFormWrap").innerHTML = "";
+  await performSearch(q, statusEl, resultsEl, true);
+}
+
+function buildFormHtml(rec, isNew){
+  let fieldsHtml = "";
+  Object.keys(FIELD_LABELS).forEach(key=>{
+    fieldsHtml += `
+      <label>${FIELD_LABELS[key]}</label>
+      <input type="text" id="f_${key}" value="${(rec[key]||"").toString().replace(/"/g,'&quot;')}">
+    `;
+  });
+  return `
+    <div class="card">
+      <h3>${isNew ? "ثبت دامدار جدید" : "ویرایش اطلاعات دامدار"}</h3>
+      ${fieldsHtml}
+      <div class="edit-actions">
+        <button class="btn-primary" onclick="saveEdit(${isNew})">ذخیره و همگام‌سازی</button>
+      </div>
+      <div class="status" id="editStatus"></div>
+    </div>
+  `;
+}
+
+function openEditForm(rec){
+  document.getElementById("editFormWrap").innerHTML = buildFormHtml(rec, false);
+}
+
+function openNewRecordForm(){
+  document.getElementById("adminResults").innerHTML = "";
+  document.getElementById("editFormWrap").innerHTML = buildFormHtml({}, true);
+}
+
+async function saveEdit(isNew){
+  const statusEl = document.getElementById("editStatus");
+  const record = {};
+  Object.keys(FIELD_LABELS).forEach(key=>{
+    record[key] = document.getElementById(`f_${key}`).value.trim();
+  });
+
+  if(!record.nationalCode && !record.mobile){
+    statusEl.textContent = "کد ملی یا موبایل را برای شناسایی رکورد وارد کنید.";
+    statusEl.className = "status err";
+    return;
+  }
+
+  const records = getLocalRecords();
+  const idKey = record.nationalCode ? "nationalCode" : "mobile";
+  const idx = records.findIndex(r => r[idKey] === record[idKey]);
+  if(idx >= 0){ records[idx] = record; } else { records.push(record); }
+  saveLocalRecords(records);
+
+  statusEl.textContent = "در حافظه دستگاه ذخیره شد. در حال ارسال به گوگل شیت...";
+  statusEl.className = "status warn";
+
+  if(!navigator.onLine){
+    statusEl.textContent = "ذخیره محلی انجام شد، ولی اینترنت وصل نیست — بعداً همگام‌سازی کنید.";
+    statusEl.className = "status warn";
+    return;
+  }
+
+  try{
+    await updateOnline(record);
+    statusEl.textContent = "با موفقیت در گوگل شیت مرکزی هم به‌روزرسانی شد ✅";
+    statusEl.className = "status ok";
+  }catch(e){
+    statusEl.textContent = "در دستگاه ذخیره شد، اما ارسال به گوگل شیت ناموفق بود. دوباره تلاش می‌شود.";
+    statusEl.className = "status err";
+  }
+}
+
+function downloadTemplate(){
+  const headers = Object.values(FIELD_LABELS);
+  const sampleRow = {
+    "نام": "علی",
+    "نام خانوادگی": "احمدی",
+    "کد ملی": "1234567890",
+    "موبایل": "09121234567",
+    "روستا / آدرس": "روستای نمونه",
+    "نوع دام": "گاو",
+    "تعداد دام": "12",
+    "تاریخ آخرین واکسیناسیون": "1404/03/15",
+    "نوع واکسن": "تب برفکی",
+    "توضیحات": ""
+  };
+  const ws = XLSX.utils.json_to_sheet([sampleRow], { header: headers });
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "دامدارها");
+  XLSX.writeFile(wb, "قالب-اطلاعات-دامدار.xlsx");
+}
+
+async function handleExcelImport(){
+  const fileInput = document.getElementById("excelFile");
+  const statusEl = document.getElementById("excelStatus");
+  const summaryEl = document.getElementById("excelSummary");
+  summaryEl.innerHTML = "";
+
+  if(!fileInput.files.length){
+    statusEl.textContent = "لطفاً یک فایل اکسل انتخاب کنید.";
+    statusEl.className = "status err";
+    return;
+  }
+
+  statusEl.textContent = "در حال خواندن فایل...";
+  statusEl.className = "status warn";
+
+  const file = fileInput.files[0];
+  const buffer = await file.arrayBuffer();
+  let rows;
+  try{
+    const wb = XLSX.read(buffer, { type: "array" });
+    const sheet = wb.Sheets[wb.SheetNames[0]];
+    rows = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+  }catch(e){
+    statusEl.textContent = "فایل قابل خواندن نبود. مطمئن شوید فرمت xlsx یا csv است.";
+    statusEl.className = "status err";
+    return;
+  }
+
+  if(!rows.length){
+    statusEl.textContent = "فایل خالی است یا ردیفی پیدا نشد.";
+    statusEl.className = "status err";
+    return;
+  }
+
+  const parsedRecords = rows.map(row => {
+    const rec = {};
+    Object.keys(row).forEach(colHeader => {
+      const fieldKey = LABEL_TO_FIELD[colHeader.trim()];
+      if(fieldKey){
+        rec[fieldKey] = (row[colHeader] ?? "").toString().trim();
+      }
+    });
+    return rec;
+  }).filter(rec => rec.nationalCode || rec.mobile);
+
+  if(!parsedRecords.length){
+    statusEl.textContent = "هیچ ردیف معتبری پیدا نشد (باید حداقل کد ملی یا موبایل داشته باشد). ستون‌های فایل را با قالب نمونه مقایسه کنید.";
+    statusEl.className = "status err";
+    return;
+  }
+
+  let added = 0, updated = 0, syncOk = 0, syncFail = 0;
+  const localRecords = getLocalRecords();
+
+  for(const rec of parsedRecords){
+    const idKey = rec.nationalCode ? "nationalCode" : "mobile";
+    const idx = localRecords.findIndex(r => r[idKey] === rec[idKey]);
+    if(idx >= 0){ localRecords[idx] = { ...localRecords[idx], ...rec }; updated++; }
+    else { localRecords.push(rec); added++; }
+  }
+  saveLocalRecords(localRecords);
+
+  statusEl.textContent = `در حافظه دستگاه ذخیره شد (${added} جدید، ${updated} به‌روزرسانی). در حال همگام‌سازی با گوگل شیت...`;
+  statusEl.className = "status warn";
+
+  if(navigator.onLine){
+    for(const rec of parsedRecords){
+      try{ await updateOnline(rec); syncOk++; }
+      catch(e){ syncFail++; }
+      await new Promise(r => setTimeout(r, 300));
+    }
+  }
+
+  summaryEl.innerHTML = `
+    <div class="result-card">
+      <div class="field-row"><span class="k">تعداد کل ردیف‌های پردازش‌شده</span><span class="v">${parsedRecords.length}</span></div>
+      <div class="field-row"><span class="k">دامدار جدید ثبت‌شده</span><span class="v">${added}</span></div>
+      <div class="field-row"><span class="k">دامدار به‌روزرسانی‌شده</span><span class="v">${updated}</span></div>
+      <div class="field-row"><span class="k">همگام‌سازی موفق با گوگل شیت</span><span class="v">${syncOk}</span></div>
+      <div class="field-row"><span class="k">همگام‌سازی ناموفق</span><span class="v">${syncFail}</span></div>
+    </div>
+  `;
+  statusEl.textContent = navigator.onLine
+    ? "پردازش فایل اکسل کامل شد ✅"
+    : "در دستگاه ذخیره شد. اینترنت وصل نیست — بعداً برای همگام‌سازی با گوگل شیت دوباره متصل شوید.";
+  statusEl.className = "status ok";
+}
+</script>
+</body>
+</html>
