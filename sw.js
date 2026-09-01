@@ -1,10 +1,11 @@
-const CACHE_NAME = "damdar-app-v1";
+const CACHE_NAME = "damdar-app-v2";
 const ASSETS = [
   "./",
   "./index.html",
   "./manifest.json",
   "./icon-192.png",
-  "./icon-512.png"
+  "./icon-512.png",
+  "./xlsx.full.min.js"
 ];
 
 self.addEventListener("install", (event) => {

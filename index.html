@@ -195,10 +195,25 @@
       </div>
       <div id="adminResults"></div>
       <div id="editFormWrap"></div>
+
+      <div class="card">
+        <h3 style="margin-top:0;font-size:1rem;color:var(--primary-dark);">وارد کردن گروهی از فایل اکسل</h3>
+        <p style="font-size:.82rem;color:var(--muted);margin-top:0;">
+          یک فایل اکسل (xlsx) با ستون‌های زیر انتخاب کن. اگر کد ملی یا موبایل یک ردیف با رکورد موجود یکی باشد، آن رکورد به‌روزرسانی می‌شود؛ در غیر این صورت دامدار جدید ثبت می‌شود.
+        </p>
+        <button class="btn-secondary btn-small" onclick="downloadTemplate()">دانلود قالب اکسل نمونه</button>
+        <div style="height:10px;"></div>
+        <label>انتخاب فایل اکسل</label>
+        <input type="file" id="excelFile" accept=".xlsx,.xls,.csv">
+        <button class="btn-primary" onclick="handleExcelImport()">شروع وارد کردن اطلاعات</button>
+        <div class="status" id="excelStatus"></div>
+        <div id="excelSummary"></div>
+      </div>
     </div>
   </div>
 </div>
 
+<script src="./xlsx.full.min.js"></script>
 <script>
 /* ============================================================
    تنظیمات
@@ -467,6 +482,123 @@ async function saveEdit(isNew){
     statusEl.textContent = "در دستگاه ذخیره شد، اما ارسال به گوگل شیت ناموفق بود. دوباره تلاش می‌شود.";
     statusEl.className = "status err";
   }
+}
+
+/* ============================================================
+   وارد کردن گروهی از اکسل / دانلود قالب
+   ============================================================ */
+// نگاشت برچسب فارسی ستون به نام فیلد داخلی (برای خواندن فایل اکسل)
+const LABEL_TO_FIELD = {};
+Object.keys(FIELD_LABELS).forEach(key => { LABEL_TO_FIELD[FIELD_LABELS[key]] = key; });
+
+function downloadTemplate(){
+  const headers = Object.values(FIELD_LABELS);
+  const sampleRow = {
+    "نام": "علی",
+    "نام خانوادگی": "احمدی",
+    "کد ملی": "1234567890",
+    "موبایل": "09121234567",
+    "روستا / آدرس": "روستای نمونه",
+    "نوع دام": "گاو",
+    "تعداد دام": "12",
+    "تاریخ آخرین واکسیناسیون": "1404/03/15",
+    "نوع واکسن": "تب برفکی",
+    "توضیحات": ""
+  };
+  const ws = XLSX.utils.json_to_sheet([sampleRow], { header: headers });
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "دامدارها");
+  XLSX.writeFile(wb, "قالب-اطلاعات-دامدار.xlsx");
+}
+
+async function handleExcelImport(){
+  const fileInput = document.getElementById("excelFile");
+  const statusEl = document.getElementById("excelStatus");
+  const summaryEl = document.getElementById("excelSummary");
+  summaryEl.innerHTML = "";
+
+  if(!fileInput.files.length){
+    statusEl.textContent = "لطفاً یک فایل اکسل انتخاب کنید.";
+    statusEl.className = "status err";
+    return;
+  }
+
+  statusEl.textContent = "در حال خواندن فایل...";
+  statusEl.className = "status warn";
+
+  const file = fileInput.files[0];
+  const buffer = await file.arrayBuffer();
+  let rows;
+  try{
+    const wb = XLSX.read(buffer, { type: "array" });
+    const sheet = wb.Sheets[wb.SheetNames[0]];
+    rows = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+  }catch(e){
+    statusEl.textContent = "فایل قابل خواندن نبود. مطمئن شوید فرمت xlsx یا csv است.";
+    statusEl.className = "status err";
+    return;
+  }
+
+  if(!rows.length){
+    statusEl.textContent = "فایل خالی است یا ردیفی پیدا نشد.";
+    statusEl.className = "status err";
+    return;
+  }
+
+  // تبدیل ردیف‌های اکسل (با عنوان فارسی) به رکوردهای داخلی
+  const parsedRecords = rows.map(row => {
+    const rec = {};
+    Object.keys(row).forEach(colHeader => {
+      const fieldKey = LABEL_TO_FIELD[colHeader.trim()];
+      if(fieldKey){
+        rec[fieldKey] = (row[colHeader] ?? "").toString().trim();
+      }
+    });
+    return rec;
+  }).filter(rec => rec.nationalCode || rec.mobile); // ردیف‌های بدون شناسه نادیده گرفته می‌شوند
+
+  if(!parsedRecords.length){
+    statusEl.textContent = "هیچ ردیف معتبری پیدا نشد (باید حداقل کد ملی یا موبایل داشته باشد). ستون‌های فایل را با قالب نمونه مقایسه کنید.";
+    statusEl.className = "status err";
+    return;
+  }
+
+  let added = 0, updated = 0, syncOk = 0, syncFail = 0;
+  const localRecords = getLocalRecords();
+
+  for(const rec of parsedRecords){
+    const idKey = rec.nationalCode ? "nationalCode" : "mobile";
+    const idx = localRecords.findIndex(r => r[idKey] === rec[idKey]);
+    if(idx >= 0){ localRecords[idx] = { ...localRecords[idx], ...rec }; updated++; }
+    else { localRecords.push(rec); added++; }
+  }
+  saveLocalRecords(localRecords);
+
+  statusEl.textContent = `در حافظه دستگاه ذخیره شد (${added} جدید، ${updated} به‌روزرسانی). در حال همگام‌سازی با گوگل شیت...`;
+  statusEl.className = "status warn";
+
+  if(navigator.onLine){
+    for(const rec of parsedRecords){
+      try{ await updateOnline(rec); syncOk++; }
+      catch(e){ syncFail++; }
+      // فاصله کوچک بین درخواست‌ها برای جلوگیری از محدودیت سرور
+      await new Promise(r => setTimeout(r, 300));
+    }
+  }
+
+  summaryEl.innerHTML = `
+    <div class="result-card">
+      <div class="field-row"><span class="k">تعداد کل ردیف‌های پردازش‌شده</span><span class="v">${parsedRecords.length}</span></div>
+      <div class="field-row"><span class="k">دامدار جدید ثبت‌شده</span><span class="v">${added}</span></div>
+      <div class="field-row"><span class="k">دامدار به‌روزرسانی‌شده</span><span class="v">${updated}</span></div>
+      <div class="field-row"><span class="k">همگام‌سازی موفق با گوگل شیت</span><span class="v">${syncOk}</span></div>
+      <div class="field-row"><span class="k">همگام‌سازی ناموفق</span><span class="v">${syncFail}</span></div>
+    </div>
+  `;
+  statusEl.textContent = navigator.onLine
+    ? "پردازش فایل اکسل کامل شد ✅"
+    : "در دستگاه ذخیره شد. اینترنت وصل نیست — بعداً برای همگام‌سازی با گوگل شیت دوباره متصل شوید.";
+  statusEl.className = "status ok";
 }
 
 /* ============================================================
