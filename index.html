@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>جستجو و به‌روزرسانی اطلاعات دامدار</title>
+<link rel="manifest" href="./manifest.json">
+<meta name="theme-color" content="#1f7a4d">
+<link rel="icon" href="./icon-192.png">
+<link rel="apple-touch-icon" href="./icon-192.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="دامدار">
+<style>
+  :root{
+    --primary:#1f7a4d;
+    --primary-dark:#155c39;
+    --bg:#f4f7f5;
+    --card:#ffffff;
+    --border:#dfe6e2;
+    --text:#233029;
+    --muted:#6b776f;
+    --danger:#c0392b;
+    --warn:#b8860b;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family: Tahoma, "Vazirmatn", sans-serif;
+    background:var(--bg);
+    color:var(--text);
+    padding:16px;
+  }
+  .wrap{max-width:640px;margin:0 auto;}
+  header{
+    text-align:center;
+    margin-bottom:16px;
+  }
+  header h1{font-size:1.25rem;margin:0 0 4px;color:var(--primary-dark);}
+  header p{margin:0;color:var(--muted);font-size:.85rem;}
+
+  .tabs{
+    display:flex;
+    gap:8px;
+    margin-bottom:16px;
+    background:var(--card);
+    border-radius:12px;
+    padding:6px;
+    border:1px solid var(--border);
+  }
+  .tab-btn{
+    flex:1;
+    padding:10px;
+    border:none;
+    background:transparent;
+    border-radius:8px;
+    font-size:.95rem;
+    color:var(--muted);
+    cursor:pointer;
+  }
+  .tab-btn.active{
+    background:var(--primary);
+    color:#fff;
+    font-weight:bold;
+  }
+
+  .card{
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:14px;
+    padding:16px;
+    margin-bottom:14px;
+  }
+
+  label{display:block;font-size:.85rem;margin-bottom:4px;color:var(--muted);}
+  input[type=text], input[type=password]{
+    width:100%;
+    padding:11px;
+    border:1px solid var(--border);
+    border-radius:10px;
+    font-size:1rem;
+    margin-bottom:12px;
+    font-family:inherit;
+    background:#fbfdfc;
+  }
+  button{
+    font-family:inherit;
+    cursor:pointer;
+    border:none;
+    border-radius:10px;
+    padding:12px 16px;
+    font-size:.95rem;
+    font-weight:bold;
+  }
+  .btn-primary{background:var(--primary);color:#fff;width:100%;}
+  .btn-primary:active{background:var(--primary-dark);}
+  .btn-secondary{background:#eef2f0;color:var(--text);width:100%;}
+  .btn-danger{background:var(--danger);color:#fff;}
+  .btn-small{padding:8px 12px;font-size:.85rem;width:auto;}
+
+  .status{font-size:.8rem;text-align:center;margin-top:8px;min-height:16px;}
+  .status.ok{color:var(--primary-dark);}
+  .status.err{color:var(--danger);}
+  .status.warn{color:var(--warn);}
+
+  .result-card{
+    border:1px solid var(--border);
+    border-radius:12px;
+    padding:14px;
+    margin-bottom:10px;
+    background:#fbfdfc;
+  }
+  .result-card h3{margin:0 0 8px;font-size:1rem;color:var(--primary-dark);}
+  .field-row{
+    display:flex;
+    justify-content:space-between;
+    padding:5px 0;
+    border-bottom:1px dashed var(--border);
+    font-size:.9rem;
+  }
+  .field-row:last-child{border-bottom:none;}
+  .field-row .k{color:var(--muted);}
+  .field-row .v{font-weight:bold;text-align:left;}
+  .source-tag{
+    display:inline-block;
+    font-size:.7rem;
+    padding:2px 8px;
+    border-radius:20px;
+    margin-bottom:8px;
+  }
+  .source-local{background:#e3f2ec;color:var(--primary-dark);}
+  .source-online{background:#e8f0fb;color:#1c5fa8;}
+
+  .no-result{text-align:center;color:var(--muted);padding:20px 0;font-size:.9rem;}
+
+  .locked-box{
+    text-align:center;
+    padding:30px 10px;
+  }
+  .locked-box p{color:var(--muted);font-size:.9rem;margin-bottom:14px;}
+
+  .edit-actions{display:flex;gap:8px;margin-top:10px;}
+  .edit-actions button{flex:1;}
+
+  .hidden{display:none !important;}
+  .top-actions{display:flex;justify-content:flex-end;margin-bottom:8px;}
+  .link-btn{
+    background:none;border:none;color:var(--muted);
+    font-size:.8rem;text-decoration:underline;padding:4px;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>🐄 جستجو و به‌روزرسانی اطلاعات دامدار</h1>
+    <p>مرکز واکسیناسیون دامپزشکی دکتر آخرتی</p>
+  </header>
+
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="search">جستجو</button>
+    <button class="tab-btn" data-tab="admin">به‌روزرسانی (مدیر)</button>
+  </div>
+
+  <!-- SEARCH TAB -->
+  <div id="tab-search">
+    <div class="card">
+      <label>جستجو بر اساس نام، نام خانوادگی، کد ملی یا موبایل</label>
+      <input type="text" id="searchInput" placeholder="مثلاً: احمدی یا 09123456789">
+      <button class="btn-primary" onclick="doSearch()">جستجو</button>
+      <div class="status" id="searchStatus"></div>
+    </div>
+    <div id="searchResults"></div>
+  </div>
+
+  <!-- ADMIN TAB -->
+  <div id="tab-admin" class="hidden">
+    <div id="lockScreen" class="card locked-box">
+      <p>برای ورود به بخش به‌روزرسانی، رمز مدیر را وارد کنید</p>
+      <input type="password" id="adminPin" placeholder="رمز عبور">
+      <button class="btn-primary" onclick="tryUnlock()">ورود</button>
+      <div class="status err" id="lockStatus"></div>
+    </div>
+
+    <div id="adminPanel" class="hidden">
+      <div class="card">
+        <label>جستجوی دامدار برای ویرایش (نام، نام خانوادگی، کد ملی یا موبایل)</label>
+        <input type="text" id="adminSearchInput" placeholder="مثلاً: احمدی یا 09123456789">
+        <button class="btn-primary" onclick="doAdminSearch()">جستجو</button>
+        <div class="status" id="adminSearchStatus"></div>
+        <div class="top-actions">
+          <button class="link-btn" onclick="openNewRecordForm()">+ ثبت دامدار جدید</button>
+        </div>
+      </div>
+      <div id="adminResults"></div>
+      <div id="editFormWrap"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   تنظیمات
+   ============================================================ */
+// آدرس Google Apps Script Web App (همون مورد استفاده در فایل ثبت واکسیناسیون)
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyVyC4YDARhRY29giI11OUw51trWUvt5TweesBFXkmXlDlmDGq0eAKcUV1V6UEhLIQMsA/exec";
+
+// رمز ورود به حالت مدیر (برای جلوگیری از ویرایش تصادفی توسط واکسیناتور)
+const ADMIN_PIN = "1234"; // <-- این را به رمز دلخواه خودتان تغییر دهید
+
+// نام فیلدهای رکورد دامدار - در صورت نیاز با ساختار گوگل شیت خودتان هماهنگ کنید
+const FIELD_LABELS = {
+  firstName: "نام",
+  lastName: "نام خانوادگی",
+  nationalCode: "کد ملی",
+  mobile: "موبایل",
+  village: "روستا / آدرس",
+  livestockType: "نوع دام",
+  livestockCount: "تعداد دام",
+  lastVaccinationDate: "تاریخ آخرین واکسیناسیون",
+  vaccineType: "نوع واکسن",
+  notes: "توضیحات"
+};
+
+const LOCAL_KEY = "damdarRecords";
+
+/* ============================================================
+   حالت محلی (localStorage)
+   ============================================================ */
+function getLocalRecords(){
+  try{
+    return JSON.parse(localStorage.getItem(LOCAL_KEY)) || [];
+  }catch(e){ return []; }
+}
+function saveLocalRecords(records){
+  localStorage.setItem(LOCAL_KEY, JSON.stringify(records));
+}
+function matchRecord(rec, q){
+  q = q.trim().toLowerCase();
+  if(!q) return false;
+  return ["firstName","lastName","nationalCode","mobile"].some(f=>
+    (rec[f]||"").toString().toLowerCase().includes(q)
+  );
+}
+function searchLocal(q){
+  return getLocalRecords().filter(r=>matchRecord(r,q));
+}
+
+/* ============================================================
+   حالت آنلاین (Google Apps Script)
+   ============================================================ */
+async function searchOnline(q){
+  const url = `${SCRIPT_URL}?action=search&query=${encodeURIComponent(q)}`;
+  const res = await fetch(url);
+  if(!res.ok) throw new Error("خطا در ارتباط با سرور");
+  const data = await res.json();
+  return Array.isArray(data) ? data : (data.results || []);
+}
+
+async function updateOnline(record){
+  const res = await fetch(SCRIPT_URL, {
+    method: "POST",
+    headers: {"Content-Type":"text/plain;charset=utf-8"},
+    body: JSON.stringify({ action:"update", record })
+  });
+  if(!res.ok) throw new Error("خطا در ارسال به سرور");
+  return res.json().catch(()=>({}));
+}
+
+/* ============================================================
+   تب‌ها
+   ============================================================ */
+document.querySelectorAll(".tab-btn").forEach(btn=>{
+  btn.addEventListener("click", ()=>{
+    document.querySelectorAll(".tab-btn").forEach(b=>b.classList.remove("active"));
+    btn.classList.add("active");
+    document.getElementById("tab-search").classList.toggle("hidden", btn.dataset.tab!=="search");
+    document.getElementById("tab-admin").classList.toggle("hidden", btn.dataset.tab!=="admin");
+  });
+});
+
+/* ============================================================
+   جستجو (تب اصلی - فقط نمایش)
+   ============================================================ */
+async function doSearch(){
+  const q = document.getElementById("searchInput").value.trim();
+  const statusEl = document.getElementById("searchStatus");
+  const resultsEl = document.getElementById("searchResults");
+  resultsEl.innerHTML = "";
+  if(!q){ statusEl.textContent="لطفاً یک عبارت برای جستجو وارد کنید."; statusEl.className="status err"; return; }
+
+  statusEl.textContent = "در حال جستجو...";
+  statusEl.className = "status warn";
+
+  // ۱) اول محلی
+  const localMatches = searchLocal(q);
+  if(localMatches.length){
+    render(localMatches, "local", resultsEl, false);
+    statusEl.textContent = `${localMatches.length} نتیجه از حافظه دستگاه پیدا شد.`;
+    statusEl.className = "status ok";
+    return;
+  }
+
+  // ۲) اگر محلی نبود، آنلاین
+  if(!navigator.onLine){
+    statusEl.textContent = "نتیجه‌ای در دستگاه پیدا نشد و اینترنت وصل نیست.";
+    statusEl.className = "status err";
+    return;
+  }
+  try{
+    const onlineMatches = await searchOnline(q);
+    if(onlineMatches.length){
+      render(onlineMatches, "online", resultsEl, false);
+      statusEl.textContent = `${onlineMatches.length} نتیجه از گوگل شیت مرکزی پیدا شد.`;
+      statusEl.className = "status ok";
+    } else {
+      resultsEl.innerHTML = `<div class="no-result">هیچ دامداری با این مشخصات پیدا نشد.</div>`;
+      statusEl.textContent = "";
+    }
+  }catch(e){
+    statusEl.textContent = "خطا در جستجوی آنلاین. اتصال اینترنت را بررسی کنید.";
+    statusEl.className = "status err";
+  }
+}
+
+function render(records, source, container, editable){
+  container.innerHTML = "";
+  records.forEach(rec=>{
+    const card = document.createElement("div");
+    card.className = "result-card";
+    const tag = source==="local"
+      ? `<span class="source-tag source-local">📱 حافظه دستگاه</span>`
+      : `<span class="source-tag source-online">☁️ گوگل شیت مرکزی</span>`;
+    let rowsHtml = "";
+    Object.keys(FIELD_LABELS).forEach(key=>{
+      const val = rec[key];
+      if(val===undefined || val==="") return;
+      rowsHtml += `<div class="field-row"><span class="k">${FIELD_LABELS[key]}</span><span class="v">${val}</span></div>`;
+    });
+    card.innerHTML = `
+      ${tag}
+      <h3>${rec.firstName||""} ${rec.lastName||""}</h3>
+      ${rowsHtml}
+      ${editable ? `<div class="edit-actions"><button class="btn-secondary btn-small" onclick='openEditForm(${JSON.stringify(rec).replace(/'/g,"&#39;")})'>ویرایش این رکورد</button></div>` : ""}
+    `;
+    container.appendChild(card);
+  });
+}
+
+/* ============================================================
+   بخش مدیر - قفل ورود
+   ============================================================ */
+let adminUnlocked = false;
+function tryUnlock(){
+  const pin = document.getElementById("adminPin").value;
+  if(pin === ADMIN_PIN){
+    adminUnlocked = true;
+    document.getElementById("lockScreen").classList.add("hidden");
+    document.getElementById("adminPanel").classList.remove("hidden");
+  }else{
+    document.getElementById("lockStatus").textContent = "رمز اشتباه است.";
+  }
+}
+
+/* ============================================================
+   جستجو در بخش مدیر (قابل ویرایش)
+   ============================================================ */
+async function doAdminSearch(){
+  const q = document.getElementById("adminSearchInput").value.trim();
+  const statusEl = document.getElementById("adminSearchStatus");
+  const resultsEl = document.getElementById("adminResults");
+  document.getElementById("editFormWrap").innerHTML = "";
+  resultsEl.innerHTML = "";
+  if(!q){ statusEl.textContent="عبارت جستجو را وارد کنید."; statusEl.className="status err"; return; }
+
+  statusEl.textContent = "در حال جستجو...";
+  statusEl.className = "status warn";
+
+  let matches = searchLocal(q);
+  let source = "local";
+  if(!matches.length && navigator.onLine){
+    try{
+      matches = await searchOnline(q);
+      source = "online";
+    }catch(e){ /* ignore, show empty */ }
+  }
+
+  if(matches.length){
+    render(matches, source, resultsEl, true);
+    statusEl.textContent = `${matches.length} نتیجه پیدا شد.`;
+    statusEl.className = "status ok";
+  }else{
+    resultsEl.innerHTML = `<div class="no-result">دامداری پیدا نشد. می‌توانید به‌عنوان دامدار جدید ثبت کنید.</div>`;
+    statusEl.textContent = "";
+  }
+}
+
+/* ============================================================
+   فرم ویرایش / ثبت جدید
+   ============================================================ */
+function buildFormHtml(rec, isNew){
+  let fieldsHtml = "";
+  Object.keys(FIELD_LABELS).forEach(key=>{
+    fieldsHtml += `
+      <label>${FIELD_LABELS[key]}</label>
+      <input type="text" id="f_${key}" value="${(rec[key]||"").toString().replace(/"/g,'&quot;')}">
+    `;
+  });
+  return `
+    <div class="card">
+      <h3>${isNew ? "ثبت دامدار جدید" : "ویرایش اطلاعات دامدار"}</h3>
+      ${fieldsHtml}
+      <div class="edit-actions">
+        <button class="btn-primary" onclick="saveEdit(${isNew})">ذخیره و همگام‌سازی</button>
+      </div>
+      <div class="status" id="editStatus"></div>
+    </div>
+  `;
+}
+
+function openEditForm(rec){
+  document.getElementById("editFormWrap").innerHTML = buildFormHtml(rec, false);
+  window._editingId = rec.nationalCode || rec.mobile || null;
+}
+
+function openNewRecordForm(){
+  document.getElementById("adminResults").innerHTML = "";
+  document.getElementById("editFormWrap").innerHTML = buildFormHtml({}, true);
+  window._editingId = null;
+}
+
+async function saveEdit(isNew){
+  const statusEl = document.getElementById("editStatus");
+  const record = {};
+  Object.keys(FIELD_LABELS).forEach(key=>{
+    record[key] = document.getElementById(`f_${key}`).value.trim();
+  });
+
+  if(!record.nationalCode && !record.mobile){
+    statusEl.textContent = "کد ملی یا موبایل را برای شناسایی رکورد وارد کنید.";
+    statusEl.className = "status err";
+    return;
+  }
+
+  // ذخیره محلی
+  const records = getLocalRecords();
+  const idKey = record.nationalCode ? "nationalCode" : "mobile";
+  const idx = records.findIndex(r => r[idKey] === record[idKey]);
+  if(idx >= 0){ records[idx] = record; } else { records.push(record); }
+  saveLocalRecords(records);
+
+  statusEl.textContent = "در حافظه دستگاه ذخیره شد. در حال ارسال به گوگل شیت...";
+  statusEl.className = "status warn";
+
+  if(!navigator.onLine){
+    statusEl.textContent = "ذخیره محلی انجام شد، ولی اینترنت وصل نیست — بعداً همگام‌سازی کنید.";
+    statusEl.className = "status warn";
+    return;
+  }
+
+  try{
+    await updateOnline(record);
+    statusEl.textContent = "با موفقیت در گوگل شیت مرکزی هم به‌روزرسانی شد ✅";
+    statusEl.className = "status ok";
+  }catch(e){
+    statusEl.textContent = "در دستگاه ذخیره شد، اما ارسال به گوگل شیت ناموفق بود. دوباره تلاش می‌شود.";
+    statusEl.className = "status err";
+  }
+}
+
+/* ============================================================
+   ثبت Service Worker برای نصب و کارکرد آفلاین (PWA)
+   ============================================================ */
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./sw.js").catch(() => {});
+  });
+}
+</script>
+</body>
+</html>
