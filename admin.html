@@ -60,6 +60,45 @@ const ADMIN_PIN = "1234";
 const LABEL_TO_FIELD = {};
 Object.keys(FIELD_LABELS).forEach(key => { LABEL_TO_FIELD[FIELD_LABELS[key]] = key; });
 
+// نام‌های جایگزین رایج برای ستون‌ها (مثلاً فایل‌های اداری با عناوین رسمی‌تر)
+const HEADER_ALIASES = {
+  "نام دامدار": "firstName",
+  "نام خانوادگی دامدار": "lastName",
+  "شماره تلفن دامدار": "mobile",
+  "شماره تلفن": "mobile",
+  "تلفن": "mobile",
+  "تلفن همراه": "mobile",
+  "موبایل": "mobile",
+  "نام واحد اپیدمیولوژیک": "village",
+  "واحد اپیدمیولوژیک": "village",
+  "روستا": "village",
+  "آدرس": "village"
+};
+
+function normalizeHeader(h){
+  return (h || "").toString()
+    .replace(/\u064A/g, "ی")   // Arabic yeh -> Persian yeh
+    .replace(/\u0643/g, "ک")   // Arabic kaf -> Persian kaf
+    .replace(/\*/g, "")
+    .replace(/\u200c/g, " ")   // ZWNJ -> space for matching
+    .trim();
+}
+
+function headerToField(rawHeader){
+  const norm = normalizeHeader(rawHeader);
+  if(LABEL_TO_FIELD[norm]) return LABEL_TO_FIELD[norm];
+  if(HEADER_ALIASES[norm]) return HEADER_ALIASES[norm];
+  // تلاش با حذف فاصله‌ها برای مقایسه نهایی
+  const collapsed = norm.replace(/\s+/g, "");
+  for(const label in LABEL_TO_FIELD){
+    if(label.replace(/\s+/g, "") === collapsed) return LABEL_TO_FIELD[label];
+  }
+  for(const alias in HEADER_ALIASES){
+    if(alias.replace(/\s+/g, "") === collapsed) return HEADER_ALIASES[alias];
+  }
+  return null;
+}
+
 function tryUnlock(){
   const pin = document.getElementById("adminPin").value;
   if(pin === ADMIN_PIN){
@@ -203,7 +242,7 @@ async function handleExcelImport(){
   const parsedRecords = rows.map(row => {
     const rec = {};
     Object.keys(row).forEach(colHeader => {
-      const fieldKey = LABEL_TO_FIELD[colHeader.trim()];
+      const fieldKey = headerToField(colHeader);
       if(fieldKey){
         rec[fieldKey] = (row[colHeader] ?? "").toString().trim();
       }
