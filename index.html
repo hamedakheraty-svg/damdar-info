@@ -351,6 +351,26 @@ button {
   border-color: var(--primary);
   box-shadow: 0 0 0 3px rgba(31,122,77,0.1);
 }
+
+/* ===== کارت فشرده نتایج ===== */
+.result-card { padding: 9px 12px; margin-bottom: 8px; border-right-width: 4px; border-radius: 8px; transform: none !important; }
+.rc-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 5px; }
+.rc-name { font-size: 15px; font-weight: bold; color: var(--primary); line-height: 1.4; }
+.rc-tag { font-size: 12px; margin-left: 2px; }
+.rc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2px 12px; }
+.rc-item { font-size: 12.5px; line-height: 1.7; color: var(--text); overflow-wrap: anywhere; }
+.rc-item.rc-wide { grid-column: 1 / -1; }
+.rc-k { color: #777; }
+.rc-v { font-weight: 600; }
+.rc-edit { padding: 4px 10px; font-size: 12px; border-radius: 6px; background: var(--primary); color: #fff; white-space: nowrap; }
+.rc-edit:hover { background: var(--primary-dark); }
+
+/* ===== نمایش تک‌خطی (اطلاعات کنار هم در یک ردیف) ===== */
+.result-card { padding: 8px 12px; margin-bottom: 6px; }
+.rc-line { display: flex; flex-wrap: wrap; align-items: center; gap: 3px 16px; }
+.rc-name { font-size: 15px; font-weight: bold; color: var(--primary); white-space: nowrap; }
+.rc-item { font-size: 12.5px; line-height: 1.6; white-space: nowrap; }
+.rc-edit { margin-right: auto; }
 </style>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

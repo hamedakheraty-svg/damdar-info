@@ -82,28 +82,24 @@ function render(records, source, container, editable){
   records.forEach((rec, idx) => {
     const card = document.createElement("div");
     card.className = "result-card";
-    const tag = source === "local"
-      ? `<span class="source-tag local-tag">📱 حافظه دستگاه</span>`
-      : `<span class="source-tag online-tag">☁️ سرور مرکزی</span>`;
+    const SHORT = {nationalCode:"کد ملی", fatherName:"پدر", mobile:"موبایل", village:"روستا"};
     let fields = "";
     FIELD_ORDER.forEach(key => {
+      if(key === "firstName" || key === "lastName") return;   // در ابتدای خط نمایش داده می‌شوند
       const val = rec[key];
       if(val === undefined || val === "") return;
-      fields += `
-        <div class="field-item">
-          <div class="field-icon">${FIELD_ICONS[key]}</div>
-          <div class="field-content">
-            <div class="field-label">${FIELD_LABELS[key]}</div>
-            <div class="field-value">${esc(val)}</div>
-          </div>
-        </div>`;
+      fields += `<span class="rc-item"><span class="rc-k">${SHORT[key]}:</span> <span class="rc-v">${esc(val)}</span></span>`;
     });
-    const actions = editable
-      ? `<div class="card-actions"><button class="btn-edit" onclick="openEditForm(${idx})">✏️ ویرایش</button></div>`
+    const tag = source === "local"
+      ? `<span class="rc-tag" title="حافظه دستگاه">📱</span>`
+      : `<span class="rc-tag" title="سرور مرکزی">☁️</span>`;
+    const edit = editable
+      ? `<button class="rc-edit" onclick="openEditForm(${idx})">✏️ ویرایش</button>`
       : "";
-    card.innerHTML = `${tag}
-      <div class="card-header"><h3>🐑 ${esc(rec.firstName)} ${esc(rec.lastName)}</h3></div>
-      <div class="card-fields">${fields}</div>${actions}`;
+    card.innerHTML = `<div class="rc-line">
+      <span class="rc-name">${tag} ${esc(rec.firstName)} ${esc(rec.lastName)}</span>
+      ${fields}${edit}
+    </div>`;
     container.appendChild(card);
   });
 }

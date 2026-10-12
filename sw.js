@@ -1,4 +1,4 @@
-const CACHE_NAME = "damdar-app-v9";
+const CACHE_NAME = "damdar-app-v11";
 const ASSETS = [
   "./",
   "./index.html",
