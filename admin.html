@@ -1,300 +1,628 @@
 <!DOCTYPE html>
-<html lang="fa" dir="rtl">
+<html dir="rtl" lang="fa">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>به‌روزرسانی اطلاعات دامدار</title>
-<meta name="theme-color" content="#1f7a4d">
-<link rel="icon" href="./icon-192.png">
-<link rel="stylesheet" href="./common.css">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>مدیریت دامدارها | مرکز واکسیناسیون دکتر آخرتی</title>
+<style>
+* { box-sizing: border-box; }
+
+:root {
+  --primary: #1f7a4d;
+  --primary-dark: #165a3a;
+  --primary-light: #2d9c6f;
+  --accent: #e67e22;
+  --success: #27ae60;
+  --danger: #e74c3c;
+  --info: #3498db;
+  --light: #ecf0f1;
+  --dark: #2c3e50;
+  --border: #bdc3c7;
+  --text: #2c3e50;
+  --bg: #ffffff;
+  --bg-light: #f5f7fa;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+body {
+  font-family: "B Nazanin", "Vazirmatn", Tahoma, sans-serif;
+  background: linear-gradient(135deg, #f5f7fa 0%, #e8eef5 100%);
+  color: var(--text);
+  padding: env(safe-area-inset-left, 0) env(safe-area-inset-right, 0) env(safe-area-inset-bottom, 16px) env(safe-area-inset-top, 16px);
+  min-height: 100vh;
+}
+
+.container { max-width: 800px; margin: 0 auto; }
+
+header {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+  color: white;
+  padding: 28px 20px;
+  border-radius: 12px;
+  margin-bottom: 24px;
+  box-shadow: 0 8px 24px rgba(31, 122, 77, 0.15);
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+header::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -10%;
+  width: 300px;
+  height: 300px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 50%;
+}
+
+h1 {
+  margin: 0;
+  font-size: 28px;
+  font-weight: bold;
+  position: relative;
+  z-index: 1;
+}
+
+.subtitle {
+  margin: 8px 0 0 0;
+  font-size: 13px;
+  opacity: 0.95;
+  position: relative;
+  z-index: 1;
+}
+
+.pin-section {
+  background: white;
+  padding: 24px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  text-align: center;
+}
+
+.pin-input {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 16px;
+}
+
+input[type="password"] {
+  padding: 12px 14px;
+  border: 2px solid var(--light);
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 16px;
+  min-width: 200px;
+  transition: all 0.3s;
+}
+
+input[type="password"]:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(31, 122, 77, 0.1);
+}
+
+button {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(31, 122, 77, 0.2);
+}
+
+.btn-primary:hover { box-shadow: 0 6px 16px rgba(31, 122, 77, 0.3); }
+.btn-primary:active { transform: scale(0.98); }
+
+.btn-secondary {
+  background: var(--info);
+  color: white;
+}
+
+.btn-secondary:hover { background: #2980b9; }
+
+.hidden { display: none !important; }
+
+.admin-panel { display: none; }
+.admin-panel.visible { display: block; }
+
+.section {
+  background: white;
+  padding: 24px;
+  border-radius: 12px;
+  margin-bottom: 24px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+.section h2 {
+  margin: 0 0 20px 0;
+  color: var(--primary);
+  font-size: 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.search-box {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.search-box input {
+  flex: 1;
+  min-width: 200px;
+  padding: 12px 14px;
+  border: 2px solid var(--light);
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 14px;
+  transition: all 0.3s;
+}
+
+.search-box input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(31, 122, 77, 0.1);
+}
+
+.status {
+  padding: 14px 16px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  font-size: 14px;
+  font-weight: 500;
+  animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+
+.status.success, .status.ok { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+.status.error, .status.err { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+.status.warn { background: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
+.status.loading { background: #e2f4ff; color: #004085; border: 1px solid #b6e4ff; }
+.status.info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+.import-box { border: 2px dashed var(--border); border-radius: 10px; padding: 18px; text-align: center; background: var(--bg-light); }
+.import-box input[type=file] { margin: 10px 0; max-width: 100%; }
+
+.results { margin-top: 16px; }
+
+.result-card {
+  background: var(--bg-light);
+  padding: 16px;
+  border-radius: 10px;
+  margin-bottom: 12px;
+  border-right: 5px solid var(--primary);
+  animation: slideIn 0.3s ease;
+  transition: all 0.3s ease;
+}
+
+.result-card:hover {
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  transform: translateY(-2px);
+}
+
+.source-tag {
+  display: inline-block;
+  padding: 5px 10px;
+  border-radius: 5px;
+  font-size: 11px;
+  font-weight: bold;
+  margin-bottom: 10px;
+}
+
+.source-tag.local-tag { background: #e3f2fd; color: #1565c0; }
+.source-tag.online-tag { background: #f3e5f5; color: #6a1b9a; }
+
+.result-card h3 {
+  margin: 0 0 12px 0;
+  color: var(--primary);
+  font-size: 16px;
+}
+
+.field-item {
+  display: flex;
+  gap: 10px;
+  padding: 8px;
+  background: white;
+  border-radius: 5px;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.field-icon { font-size: 16px; min-width: 20px; }
+
+.field-content { flex: 1; }
+
+.field-label { font-size: 11px; color: #666; font-weight: bold; }
+
+.field-value { font-size: 13px; color: var(--text); }
+
+.card-actions {
+  margin-top: 12px;
+  display: flex;
+  gap: 8px;
+}
+
+.btn-edit {
+  flex: 1;
+  background: var(--primary);
+  color: white;
+  padding: 9px 12px;
+  font-size: 12px;
+}
+
+.btn-edit:hover { background: var(--primary-dark); }
+
+.form-grid {
+  display: grid;
+  gap: 16px;
+}
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-field label {
+  margin-bottom: 6px;
+  font-weight: bold;
+  font-size: 13px;
+  color: var(--dark);
+}
+
+.form-input {
+  padding: 11px 13px;
+  border: 2px solid var(--light);
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--text);
+  transition: all 0.3s;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(31, 122, 77, 0.1);
+}
+
+.form-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.form-actions button {
+  flex: 1;
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: flex-end;
+  z-index: 1000;
+}
+
+.modal-dialog {
+  background: white;
+  width: 100%;
+  max-width: 500px;
+  border-radius: 16px 16px 0 0;
+  box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
+  max-height: 85vh;
+  overflow-y: auto;
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--light);
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+  color: white;
+}
+
+.modal-header h2 { margin: 0; font-size: 18px; }
+
+.modal-close {
+  background: rgba(255,255,255,0.2);
+  color: white;
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 18px;
+}
+
+.modal-body { padding: 20px; }
+
+.modal-footer {
+  padding: 16px 20px;
+  border-top: 1px solid var(--light);
+  display: flex;
+  gap: 10px;
+  background: var(--bg-light);
+}
+
+.modal-footer button { flex: 1; }
+
+.no-result {
+  padding: 32px 20px;
+  text-align: center;
+  color: #666;
+  background: var(--bg-light);
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.hint {
+  background: #e8f5e9;
+  color: #2e7d32;
+  padding: 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  text-align: center;
+  margin-top: 24px;
+}
+</style>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="manifest" href="./manifest.json">
+<meta name="theme-color" content="#1f7a4d">
 </head>
 <body>
-<div class="wrap">
-  <header>
-    <h1>🔒 به‌روزرسانی اطلاعات دامدار</h1>
-    <p>این صفحه فقط برای مدیریت مرکز است — لینکش را در اختیار کسی قرار ندهید</p>
-  </header>
 
-  <div id="lockScreen" class="card locked-box">
-    <p>برای ورود به بخش به‌روزرسانی، رمز مدیر را وارد کنید</p>
-    <input type="password" id="adminPin" placeholder="رمز عبور">
-    <button class="btn-primary" onclick="tryUnlock()">ورود</button>
-    <div class="status err" id="lockStatus"></div>
-  </div>
+<div class="container">
+<header>
+  <h1>🔐 مدیریت دامدارها</h1>
+  <p class="subtitle">مرکز واکسیناسیون دامپزشکی دکتر آخرتی</p>
+</header>
 
-  <div id="adminPanel" class="hidden">
-    <div class="card">
-      <label>جستجوی دامدار برای ویرایش (نام، نام خانوادگی، کد ملی یا موبایل)</label>
-      <input type="text" id="adminSearchInput" placeholder="مثلاً: احمدی یا 09123456789">
-      <button class="btn-primary" onclick="doAdminSearch()">جستجو</button>
-      <div class="status" id="adminSearchStatus"></div>
-      <div class="top-actions">
-        <button class="link-btn" onclick="openNewRecordForm()">+ ثبت دامدار جدید</button>
-      </div>
-    </div>
-    <div id="adminResults"></div>
-    <div id="editFormWrap"></div>
-
-    <div class="card">
-      <h3 style="margin-top:0;font-size:1rem;color:var(--primary-dark);">وارد کردن گروهی از فایل اکسل</h3>
-      <p style="font-size:.82rem;color:var(--muted);margin-top:0;">
-        یک فایل اکسل (xlsx) با ستون‌های زیر انتخاب کن. اگر کد ملی یا موبایل یک ردیف با رکورد موجود یکی باشد، آن رکورد به‌روزرسانی می‌شود؛ در غیر این صورت دامدار جدید ثبت می‌شود.
-      </p>
-      <button class="btn-secondary btn-small" onclick="downloadTemplate()">دانلود قالب اکسل نمونه</button>
-      <div style="height:10px;"></div>
-      <label>انتخاب فایل اکسل</label>
-      <input type="file" id="excelFile" accept=".xlsx,.xls,.csv">
-      <button class="btn-primary" onclick="handleExcelImport()">شروع وارد کردن اطلاعات</button>
-      <div class="status" id="excelStatus"></div>
-      <div id="excelSummary"></div>
-    </div>
+<!-- بخش رمز -->
+<div class="pin-section" id="pinSection">
+  <h3>🔑 ورود به حساب مدیر</h3>
+  <div class="pin-input">
+    <input type="password" id="adminPin" placeholder="رمز مدیر را وارد کنید" />
+    <button class="btn-primary" onclick="checkPin()">ورود</button>
   </div>
 </div>
 
-<script src="./common.js"></script>
+<!-- پنل مدیریت -->
+<div class="admin-panel" id="adminPanel">
+
+<!-- جستجو و ویرایش -->
+<div class="section">
+  <h2>🔍 جستجو و ویرایش</h2>
+  <div class="search-box">
+    <input type="text" id="searchInput" placeholder="نام، نام خانوادگی، کد ملی یا شماره موبایل" />
+    <button class="btn-primary" onclick="doSearch()">جستجو</button>
+  </div>
+  <div id="searchStatus"></div>
+  <div id="searchResults" class="results"></div>
+</div>
+
+<!-- اضافه کردن رکورد جدید -->
+<div class="section">
+  <h2>➕ اضافه کردن دامدار جدید</h2>
+  <div class="form-grid">
+    <div class="form-field">
+      <label>👤 نام *</label>
+      <input type="text" id="form_firstName" placeholder="نام دامدار" class="form-input" />
+    </div>
+    <div class="form-field">
+      <label>👨‍👩‍👧 نام خانوادگی *</label>
+      <input type="text" id="form_lastName" placeholder="نام خانوادگی" class="form-input" />
+    </div>
+    <div class="form-field">
+      <label>🆔 کد ملی *</label>
+      <input type="text" id="form_nationalCode" placeholder="10 رقم" class="form-input" />
+    </div>
+    <div class="form-field">
+      <label>👨 نام پدر *</label>
+      <input type="text" id="form_fatherName" placeholder="نام پدر" class="form-input" />
+    </div>
+    <div class="form-field">
+      <label>📱 شماره موبایل *</label>
+      <input type="text" id="form_mobile" placeholder="09..." class="form-input" />
+    </div>
+    <div class="form-field">
+      <label>📍 روستا / آدرس *</label>
+      <input type="text" id="form_village" placeholder="روستا یا آدرس" class="form-input" />
+    </div>
+  </div>
+  <div class="form-actions">
+    <button class="btn-primary" onclick="addNewRecord()">💾 ذخیره</button>
+    <button class="btn-secondary" onclick="clearForm()">🔄 پاک کردن</button>
+  </div>
+</div>
+
+<!-- ورود گروهی از اکسل -->
+<div class="section">
+  <h2>📥 ورود گروهی از اکسل</h2>
+  <div class="import-box">
+    <div style="font-size:13px;color:#555;line-height:1.8">
+      ستون‌های فایل: نام، نام خانوادگی، کد ملی، نام پدر، شماره موبایل، روستا / آدرس<br>
+      رکوردهایی که کد ملی‌شان قبلاً ثبت شده باشد به‌روزرسانی می‌شوند، بقیه اضافه می‌شوند.
+    </div>
+    <input type="file" id="excelFile" accept=".xlsx,.xls" />
+    <div><button class="btn-primary" onclick="importExcel()">📥 شروع ورود اطلاعات</button></div>
+    <div id="importStatus" style="margin-top:14px"></div>
+  </div>
+</div>
+
+<div class="hint">
+  💡 برای ویرایش رکورد موجود بالا جستجو کنید و دکمه "ویرایش" را بزنید
+</div>
+
+</div>
+
+</div>
+
 <script src="./xlsx.full.min.js"></script>
+<script src="./common.js"></script>
 <script>
-/* رمز ورود به این صفحه — حتماً به رمز دلخواه خودت تغییرش بده */
 const ADMIN_PIN = "1234";
 
-const LABEL_TO_FIELD = {};
-Object.keys(FIELD_LABELS).forEach(key => { LABEL_TO_FIELD[FIELD_LABELS[key]] = key; });
-
-// نام‌های جایگزین رایج برای ستون‌ها (مثلاً فایل‌های اداری با عناوین رسمی‌تر)
-const HEADER_ALIASES = {
-  "نام دامدار": "firstName",
-  "نام خانوادگی دامدار": "lastName",
-  "شماره تلفن دامدار": "mobile",
-  "شماره تلفن": "mobile",
-  "تلفن": "mobile",
-  "تلفن همراه": "mobile",
-  "موبایل": "mobile",
-  "نام واحد اپیدمیولوژیک": "village",
-  "واحد اپیدمیولوژیک": "village",
-  "روستا": "village",
-  "آدرس": "village"
-};
-
-function normalizeHeader(h){
-  return (h || "").toString()
-    .replace(/\u064A/g, "ی")   // Arabic yeh -> Persian yeh
-    .replace(/\u0643/g, "ک")   // Arabic kaf -> Persian kaf
-    .replace(/\*/g, "")
-    .replace(/\u200c/g, " ")   // ZWNJ -> space for matching
-    .trim();
-}
-
-function headerToField(rawHeader){
-  const norm = normalizeHeader(rawHeader);
-  if(LABEL_TO_FIELD[norm]) return LABEL_TO_FIELD[norm];
-  if(HEADER_ALIASES[norm]) return HEADER_ALIASES[norm];
-  // تلاش با حذف فاصله‌ها برای مقایسه نهایی
-  const collapsed = norm.replace(/\s+/g, "");
-  for(const label in LABEL_TO_FIELD){
-    if(label.replace(/\s+/g, "") === collapsed) return LABEL_TO_FIELD[label];
-  }
-  for(const alias in HEADER_ALIASES){
-    if(alias.replace(/\s+/g, "") === collapsed) return HEADER_ALIASES[alias];
-  }
-  return null;
-}
-
-function tryUnlock(){
+function checkPin(){
   const pin = document.getElementById("adminPin").value;
   if(pin === ADMIN_PIN){
-    document.getElementById("lockScreen").classList.add("hidden");
-    document.getElementById("adminPanel").classList.remove("hidden");
-  }else{
-    document.getElementById("lockStatus").textContent = "رمز اشتباه است.";
+    document.getElementById("pinSection").classList.add("hidden");
+    document.getElementById("adminPanel").classList.add("visible");
+  } else {
+    alert("❌ رمز اشتباه است!");
   }
 }
 
-async function doAdminSearch(){
-  const q = document.getElementById("adminSearchInput").value.trim();
-  const statusEl = document.getElementById("adminSearchStatus");
-  const resultsEl = document.getElementById("adminResults");
-  document.getElementById("editFormWrap").innerHTML = "";
-  await performSearch(q, statusEl, resultsEl, true);
+document.getElementById("adminPin").addEventListener("keypress", function(e){
+  if(e.key === "Enter") checkPin();
+});
+
+function doSearch(){
+  const q = document.getElementById("searchInput").value;
+  const status = document.getElementById("searchStatus");
+  const results = document.getElementById("searchResults");
+  performSearch(q, status, results, true);
 }
 
-function buildFormHtml(rec, isNew){
-  let fieldsHtml = "";
-  Object.keys(FIELD_LABELS).forEach(key=>{
-    fieldsHtml += `
-      <label>${FIELD_LABELS[key]}</label>
-      <input type="text" id="f_${key}" value="${(rec[key]||"").toString().replace(/"/g,'&quot;')}">
-    `;
-  });
-  return `
-    <div class="card">
-      <h3>${isNew ? "ثبت دامدار جدید" : "ویرایش اطلاعات دامدار"}</h3>
-      ${fieldsHtml}
-      <div class="edit-actions">
-        <button class="btn-primary" onclick="saveEdit(${isNew})">ذخیره و همگام‌سازی</button>
-      </div>
-      <div class="status" id="editStatus"></div>
-    </div>
-  `;
-}
+document.getElementById("searchInput").addEventListener("keypress", function(e){
+  if(e.key === "Enter") doSearch();
+});
 
-function openEditForm(rec){
-  document.getElementById("editFormWrap").innerHTML = buildFormHtml(rec, false);
-}
-
-function openNewRecordForm(){
-  document.getElementById("adminResults").innerHTML = "";
-  document.getElementById("editFormWrap").innerHTML = buildFormHtml({}, true);
-}
-
-async function saveEdit(isNew){
-  const statusEl = document.getElementById("editStatus");
-  const record = {};
-  Object.keys(FIELD_LABELS).forEach(key=>{
-    record[key] = document.getElementById(`f_${key}`).value.trim();
-  });
-
-  if(!record.nationalCode && !record.mobile){
-    statusEl.textContent = "کد ملی یا موبایل را برای شناسایی رکورد وارد کنید.";
-    statusEl.className = "status err";
-    return;
-  }
-
-  const records = getLocalRecords();
-  const idKey = record.nationalCode ? "nationalCode" : "mobile";
-  const idx = records.findIndex(r => r[idKey] === record[idKey]);
-  if(idx >= 0){ records[idx] = record; } else { records.push(record); }
-  saveLocalRecords(records);
-
-  statusEl.textContent = "در حافظه دستگاه ذخیره شد. در حال ارسال به گوگل شیت...";
-  statusEl.className = "status warn";
-
-  if(!navigator.onLine){
-    statusEl.textContent = "ذخیره محلی انجام شد، ولی اینترنت وصل نیست — بعداً همگام‌سازی کنید.";
-    statusEl.className = "status warn";
-    return;
-  }
-
-  try{
-    await updateOnline(record);
-    statusEl.textContent = "با موفقیت در گوگل شیت مرکزی هم به‌روزرسانی شد ✅";
-    statusEl.className = "status ok";
-  }catch(e){
-    statusEl.textContent = "در دستگاه ذخیره شد، اما ارسال به گوگل شیت ناموفق بود. دوباره تلاش می‌شود.";
-    statusEl.className = "status err";
-  }
-}
-
-function downloadTemplate(){
-  const headers = Object.values(FIELD_LABELS);
-  const sampleRow = {
-    "نام": "علی",
-    "نام خانوادگی": "احمدی",
-    "کد ملی": "1234567890",
-    "نام پدر": "رضا",
-    "شماره موبایل": "09121234567",
-    "روستا / آدرس": "روستای نمونه",
-    "نوع دام": "گاو",
-    "تعداد دام": "12",
-    "تاریخ آخرین واکسیناسیون": "1404/03/15",
-    "نوع واکسن": "تب برفکی",
-    "توضیحات": ""
+async function addNewRecord(){
+  const rec = {
+    firstName: document.getElementById("form_firstName").value.trim(),
+    lastName: document.getElementById("form_lastName").value.trim(),
+    nationalCode: document.getElementById("form_nationalCode").value.trim(),
+    fatherName: document.getElementById("form_fatherName").value.trim(),
+    mobile: document.getElementById("form_mobile").value.trim(),
+    village: document.getElementById("form_village").value.trim()
   };
-  const ws = XLSX.utils.json_to_sheet([sampleRow], { header: headers });
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, "دامدارها");
-  XLSX.writeFile(wb, "قالب-اطلاعات-دامدار.xlsx");
+
+  const emptyFields = Object.keys(rec).filter(k => !rec[k]);
+  if(emptyFields.length){
+    alert("⚠️ لطفاً تمام فیلدها را پر کنید!");
+    return;
+  }
+
+  const existed = upsertLocal(rec, rec.nationalCode);
+  let onlineOk = true;
+  if(navigator.onLine){
+    try{ await updateOnline(rec, rec.nationalCode); }catch(e){ onlineOk = false; }
+  }else{ onlineOk = false; }
+
+  alert(onlineOk ? (existed ? "✅ این کد ملی قبلاً ثبت بود؛ اطلاعاتش به‌روزرسانی شد." : "✅ دامدار جدید اضافه شد!") : "⚠️ فقط روی این دستگاه ذخیره شد. ارسال به گوگل شیت انجام نشد.");
+  clearForm();
 }
 
-async function handleExcelImport(){
-  const fileInput = document.getElementById("excelFile");
-  const statusEl = document.getElementById("excelStatus");
-  const summaryEl = document.getElementById("excelSummary");
-  summaryEl.innerHTML = "";
 
-  if(!fileInput.files.length){
-    statusEl.textContent = "لطفاً یک فایل اکسل انتخاب کنید.";
-    statusEl.className = "status err";
-    return;
-  }
-
-  statusEl.textContent = "در حال خواندن فایل...";
-  statusEl.className = "status warn";
-
-  const file = fileInput.files[0];
-  const buffer = await file.arrayBuffer();
-  let rows;
+const IMPORT_HEADERS = {
+  "نام":"firstName","نام خانوادگی":"lastName","کد ملی":"nationalCode",
+  "نام پدر":"fatherName","شماره موبایل":"mobile","روستا / آدرس":"village",
+  "firstName":"firstName","lastName":"lastName","nationalCode":"nationalCode",
+  "fatherName":"fatherName","mobile":"mobile","village":"village"
+};
+function faDigitsToEn(v){
+  return String(v).replace(/[۰-۹]/g, d => "۰۱۲۳۴۵۶۷۸۹".indexOf(d))
+                  .replace(/[٠-٩]/g, d => "٠١٢٣٤٥٦٧٨٩".indexOf(d));
+}
+async function importExcel(){
+  const st = document.getElementById("importStatus");
+  const file = document.getElementById("excelFile").files[0];
+  if(!file){ st.className="status warn"; st.textContent="ابتدا فایل اکسل را انتخاب کنید."; return; }
+  st.className="status loading"; st.textContent="⏳ در حال خواندن فایل...";
   try{
-    const wb = XLSX.read(buffer, { type: "array" });
-    const sheet = wb.Sheets[wb.SheetNames[0]];
-    rows = XLSX.utils.sheet_to_json(sheet, { defval: "" });
-  }catch(e){
-    statusEl.textContent = "فایل قابل خواندن نبود. مطمئن شوید فرمت xlsx یا csv است.";
-    statusEl.className = "status err";
-    return;
-  }
-
-  if(!rows.length){
-    statusEl.textContent = "فایل خالی است یا ردیفی پیدا نشد.";
-    statusEl.className = "status err";
-    return;
-  }
-
-  const parsedRecords = rows.map(row => {
-    const rec = {};
-    Object.keys(row).forEach(colHeader => {
-      const fieldKey = headerToField(colHeader);
-      if(fieldKey){
-        rec[fieldKey] = (row[colHeader] ?? "").toString().trim();
-      }
+    const buf = await file.arrayBuffer();
+    const wb = XLSX.read(buf, {type:"array"});
+    const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], {defval:""});
+    const recs = [];
+    let skipped = 0;
+    rows.forEach(r => {
+      const rec = {firstName:"",lastName:"",nationalCode:"",fatherName:"",mobile:"",village:""};
+      Object.keys(r).forEach(h => {
+        const k = IMPORT_HEADERS[String(h).trim()];
+        if(k) rec[k] = faDigitsToEn(r[h]).trim();
+      });
+      if(!rec.nationalCode && !rec.mobile){ skipped++; return; }
+      recs.push(rec);
     });
-    return rec;
-  }).filter(rec => rec.nationalCode || rec.mobile);
+    if(!recs.length){ st.className="status error"; st.textContent="هیچ رکورد معتبری پیدا نشد. سرستون‌ها را بررسی کنید."; return; }
 
-  if(!parsedRecords.length){
-    statusEl.textContent = "هیچ ردیف معتبری پیدا نشد (باید حداقل کد ملی یا موبایل داشته باشد). ستون‌های فایل را با قالب نمونه مقایسه کنید.";
-    statusEl.className = "status err";
-    return;
-  }
+    // حافظه دستگاه
+    const list = getLocalRecords();
+    const idx = new Map(list.map((r,i)=>[r.nationalCode, i]));
+    let added = 0, updated = 0;
+    recs.forEach(rec => {
+      if(rec.nationalCode && idx.has(rec.nationalCode)){ list[idx.get(rec.nationalCode)] = rec; updated++; }
+      else{ list.push(rec); if(rec.nationalCode) idx.set(rec.nationalCode, list.length-1); added++; }
+    });
+    saveLocalRecords(list);
 
-  let added = 0, updated = 0, syncOk = 0, syncFail = 0;
-  const localRecords = getLocalRecords();
-
-  for(const rec of parsedRecords){
-    const idKey = rec.nationalCode ? "nationalCode" : "mobile";
-    const idx = localRecords.findIndex(r => r[idKey] === rec[idKey]);
-    if(idx >= 0){ localRecords[idx] = { ...localRecords[idx], ...rec }; updated++; }
-    else { localRecords.push(rec); added++; }
-  }
-  saveLocalRecords(localRecords);
-
-  statusEl.textContent = `در حافظه دستگاه ذخیره شد (${added} جدید، ${updated} به‌روزرسانی). در حال همگام‌سازی با گوگل شیت...`;
-  statusEl.className = "status warn";
-
-  if(navigator.onLine){
-    for(const rec of parsedRecords){
-      try{ await updateOnline(rec); syncOk++; }
-      catch(e){ syncFail++; }
-      await new Promise(r => setTimeout(r, 300));
+    // گوگل شیت (دسته‌های ۴۰۰ تایی)
+    if(!navigator.onLine){
+      st.className="status warn";
+      st.textContent=`✅ ${recs.length} رکورد در دستگاه ذخیره شد، ولی اینترنت وصل نبود و به گوگل شیت ارسال نشد.`;
+      return;
     }
+    const CHUNK = 400;
+    for(let i=0; i<recs.length; i+=CHUNK){
+      st.className="status loading";
+      st.textContent=`⏳ ارسال به گوگل شیت... ${Math.min(i+CHUNK,recs.length)} از ${recs.length}`;
+      await postToScript({action:"bulkUpdate", records:recs.slice(i,i+CHUNK)});
+    }
+    st.className="status success";
+    st.textContent=`✅ تمام شد: ${added} رکورد جدید، ${updated} به‌روزرسانی` + (skipped?`، ${skipped} ردیف بدون کد ملی و موبایل نادیده گرفته شد.`:".");
+  }catch(e){
+    st.className="status error";
+    st.textContent="⚠️ خطا در ورود اطلاعات. فایل یا اینترنت را بررسی کنید و دوباره تلاش کنید.";
   }
+}
 
-  summaryEl.innerHTML = `
-    <div class="result-card">
-      <div class="field-row"><span class="k">تعداد کل ردیف‌های پردازش‌شده</span><span class="v">${parsedRecords.length}</span></div>
-      <div class="field-row"><span class="k">دامدار جدید ثبت‌شده</span><span class="v">${added}</span></div>
-      <div class="field-row"><span class="k">دامدار به‌روزرسانی‌شده</span><span class="v">${updated}</span></div>
-      <div class="field-row"><span class="k">همگام‌سازی موفق با گوگل شیت</span><span class="v">${syncOk}</span></div>
-      <div class="field-row"><span class="k">همگام‌سازی ناموفق</span><span class="v">${syncFail}</span></div>
-    </div>
-  `;
-  statusEl.textContent = navigator.onLine
-    ? "پردازش فایل اکسل کامل شد ✅"
-    : "در دستگاه ذخیره شد. اینترنت وصل نیست — بعداً برای همگام‌سازی با گوگل شیت دوباره متصل شوید.";
-  statusEl.className = "status ok";
+function clearForm(){
+  document.getElementById("form_firstName").value = "";
+  document.getElementById("form_lastName").value = "";
+  document.getElementById("form_nationalCode").value = "";
+  document.getElementById("form_fatherName").value = "";
+  document.getElementById("form_mobile").value = "";
+  document.getElementById("form_village").value = "";
+}
+
+if("serviceWorker" in navigator){
+  window.addEventListener("load", ()=>{
+    navigator.serviceWorker.register("./sw.js").catch(()=>{});
+  });
 }
 </script>
+
 </body>
 </html>

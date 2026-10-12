@@ -1,9 +1,360 @@
 <!DOCTYPE html>
-<html lang="fa" dir="rtl">
+<html dir="rtl" lang="fa">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>جستجوی اطلاعات دامدار</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>جستجوی دامدار | مرکز واکسیناسیون دکتر آخرتی</title>
+<style>
+* { box-sizing: border-box; }
+
+:root {
+  --primary: #1f7a4d;
+  --primary-dark: #165a3a;
+  --primary-light: #2d9c6f;
+  --accent: #e67e22;
+  --success: #27ae60;
+  --danger: #e74c3c;
+  --info: #3498db;
+  --light: #ecf0f1;
+  --dark: #2c3e50;
+  --border: #bdc3c7;
+  --text: #2c3e50;
+  --bg: #ffffff;
+  --bg-light: #f5f7fa;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+body {
+  font-family: "B Nazanin", "Vazirmatn", Tahoma, sans-serif;
+  background: linear-gradient(135deg, #f5f7fa 0%, #e8eef5 100%);
+  color: var(--text);
+  padding: env(safe-area-inset-left, 0) env(safe-area-inset-right, 0) env(safe-area-inset-bottom, 16px) env(safe-area-inset-top, 16px);
+  min-height: 100vh;
+}
+
+.container { max-width: 700px; margin: 0 auto; }
+
+header {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+  color: white;
+  padding: 28px 20px;
+  border-radius: 12px;
+  margin-bottom: 24px;
+  box-shadow: 0 8px 24px rgba(31, 122, 77, 0.15);
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+header::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -10%;
+  width: 300px;
+  height: 300px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 50%;
+}
+
+h1 {
+  margin: 0;
+  font-size: 28px;
+  font-weight: bold;
+  position: relative;
+  z-index: 1;
+}
+
+.subtitle {
+  margin: 8px 0 0 0;
+  font-size: 13px;
+  opacity: 0.95;
+  position: relative;
+  z-index: 1;
+}
+
+.search-section {
+  background: var(--bg);
+  padding: 24px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  margin-bottom: 24px;
+}
+
+.search-box {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.search-box input {
+  flex: 1;
+  min-width: 200px;
+  padding: 14px 16px;
+  border: 2px solid var(--light);
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--text);
+  transition: all 0.3s ease;
+}
+
+.search-box input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(31, 122, 77, 0.1);
+}
+
+.search-box input::placeholder {
+  color: #999;
+}
+
+button {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(31, 122, 77, 0.2);
+}
+
+.btn-primary:active { transform: scale(0.98); }
+.btn-primary:hover { box-shadow: 0 6px 16px rgba(31, 122, 77, 0.3); }
+
+.btn-secondary {
+  background: var(--info);
+  color: white;
+}
+
+.btn-secondary:hover { background: #2980b9; }
+
+.status {
+  padding: 14px 16px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  font-size: 14px;
+  font-weight: 500;
+  animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+
+.status.success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+.status.error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+.status.loading { background: #e2f4ff; color: #004085; border: 1px solid #b6e4ff; }
+.status.info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+
+.results { margin-top: 20px; }
+
+.result-card {
+  background: white;
+  padding: 18px;
+  border-radius: 10px;
+  margin-bottom: 14px;
+  border-right: 5px solid var(--primary);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  animation: slideIn 0.3s ease;
+  transition: all 0.3s ease;
+}
+
+.result-card:hover {
+  box-shadow: 0 6px 16px rgba(0,0,0,0.12);
+  transform: translateY(-2px);
+}
+
+.source-tag {
+  display: inline-block;
+  padding: 5px 10px;
+  border-radius: 5px;
+  font-size: 11px;
+  font-weight: bold;
+  margin-bottom: 10px;
+}
+
+.source-tag.local-tag { background: #e3f2fd; color: #1565c0; }
+.source-tag.online-tag { background: #f3e5f5; color: #6a1b9a; }
+
+.card-header h3 {
+  margin: 0 0 16px 0;
+  color: var(--primary);
+  font-size: 18px;
+}
+
+.card-fields {
+  display: grid;
+  gap: 12px;
+}
+
+.field-item {
+  display: flex;
+  gap: 12px;
+  padding: 10px;
+  background: var(--bg-light);
+  border-radius: 6px;
+  align-items: center;
+}
+
+.field-icon {
+  font-size: 20px;
+  min-width: 24px;
+}
+
+.field-content {
+  flex: 1;
+}
+
+.field-label {
+  font-size: 12px;
+  color: #666;
+  margin-bottom: 2px;
+  font-weight: bold;
+}
+
+.field-value {
+  font-size: 14px;
+  color: var(--text);
+  font-weight: 500;
+}
+
+.card-actions {
+  margin-top: 14px;
+  display: flex;
+  gap: 8px;
+}
+
+.btn-edit {
+  flex: 1;
+  background: var(--primary);
+  color: white;
+  padding: 10px 12px;
+  font-size: 13px;
+}
+
+.btn-edit:hover { background: var(--primary-dark); }
+
+.no-result {
+  padding: 40px 20px;
+  text-align: center;
+  color: #666;
+  background: var(--bg-light);
+  border-radius: 8px;
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: flex-end;
+  z-index: 1000;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+.modal-dialog {
+  background: white;
+  width: 100%;
+  max-width: 500px;
+  border-radius: 16px 16px 0 0;
+  box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
+  max-height: 85vh;
+  overflow-y: auto;
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--light);
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+  color: white;
+  border-radius: 16px 16px 0 0;
+}
+
+.modal-header h2 { margin: 0; font-size: 18px; }
+
+.modal-close {
+  background: rgba(255,255,255,0.2);
+  color: white;
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 18px;
+}
+
+.modal-body {
+  padding: 20px;
+}
+
+.modal-footer {
+  padding: 16px 20px;
+  border-top: 1px solid var(--light);
+  display: flex;
+  gap: 10px;
+  background: var(--bg-light);
+}
+
+.modal-footer button { flex: 1; }
+
+.form-field {
+  margin-bottom: 16px;
+}
+
+.form-field label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: bold;
+  font-size: 13px;
+  color: var(--text);
+}
+
+.form-input {
+  width: 100%;
+  padding: 11px 13px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--text);
+  transition: all 0.2s;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(31,122,77,0.1);
+}
+</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;700&display=swap" rel="stylesheet">
 <link rel="manifest" href="./manifest.json">
 <meta name="theme-color" content="#1f7a4d">
 <link rel="icon" href="./icon-192.png">
@@ -11,43 +362,46 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="دامدار">
-<link rel="stylesheet" href="./common.css">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;700&display=swap" rel="stylesheet">
+<meta name="apple-mobile-web-app-title" content="جستجوی دامدار">
 </head>
 <body>
-<div class="wrap">
-  <header>
-    <h1>🐄 جستجوی اطلاعات دامدار</h1>
-    <p>مرکز واکسیناسیون دامپزشکی دکتر آخرتی</p>
-  </header>
 
-  <div class="card">
-    <label>جستجو بر اساس نام، نام خانوادگی، کد ملی یا موبایل</label>
-    <input type="text" id="searchInput" placeholder="مثلاً: احمدی یا 09123456789">
+<div class="container">
+<header>
+  <h1>🔍 جستجوی دامدار</h1>
+  <p class="subtitle">مرکز واکسیناسیون دامپزشکی دکتر آخرتی</p>
+</header>
+
+<div class="search-section">
+  <div class="search-box">
+    <input type="text" id="searchInput" placeholder="نام، نام خانوادگی، کد ملی یا شماره موبایل را وارد کنید" />
     <button class="btn-primary" onclick="doSearch()">جستجو</button>
-    <div class="status" id="searchStatus"></div>
   </div>
-  <div id="searchResults"></div>
+  <div id="searchStatus"></div>
+  <div id="searchResults" class="results"></div>
+</div>
+
 </div>
 
 <script src="./common.js"></script>
 <script>
-async function doSearch(){
-  const q = document.getElementById("searchInput").value.trim();
-  const statusEl = document.getElementById("searchStatus");
-  const resultsEl = document.getElementById("searchResults");
-  await performSearch(q, statusEl, resultsEl, false);
+function doSearch(){
+  const q = document.getElementById("searchInput").value;
+  const status = document.getElementById("searchStatus");
+  const results = document.getElementById("searchResults");
+  performSearch(q, status, results, false);
 }
 
-/* ثبت Service Worker برای نصب و کارکرد آفلاین (PWA) */
-if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./sw.js").catch(() => {});
+document.getElementById("searchInput").addEventListener("keypress", function(e){
+  if(e.key === "Enter") doSearch();
+});
+
+if("serviceWorker" in navigator){
+  window.addEventListener("load", ()=>{
+    navigator.serviceWorker.register("./sw.js").catch(()=>{});
   });
 }
 </script>
+
 </body>
 </html>

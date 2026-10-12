@@ -1,139 +1,215 @@
 /* ============================================================
-   تنظیمات مشترک
+   اپ جستجو و ویرایش دامدار - منطق مشترک
    ============================================================ */
-// آدرس Google Apps Script Web App (همون مورد استفاده در فایل ثبت واکسیناسیون)
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyVyC4YDARhRY29giI11OUw51trWUvt5TweesBFXkmXlDlmDGq0eAKcUV1V6UEhLIQMsA/exec";
 
-// نام فیلدهای رکورد دامدار - در صورت نیاز با ساختار گوگل شیت خودتان هماهنگ کنید
 const FIELD_LABELS = {
   firstName: "نام",
   lastName: "نام خانوادگی",
   nationalCode: "کد ملی",
   fatherName: "نام پدر",
   mobile: "شماره موبایل",
-  village: "روستا / آدرس",
-  livestockType: "نوع دام",
-  livestockCount: "تعداد دام",
-  lastVaccinationDate: "تاریخ آخرین واکسیناسیون",
-  vaccineType: "نوع واکسن",
-  notes: "توضیحات"
+  village: "روستا / آدرس"
 };
-
+const FIELD_ICONS = {
+  firstName: "👤", lastName: "👨‍👩‍👧", nationalCode: "🆔",
+  fatherName: "👨", mobile: "📱", village: "📍"
+};
+const FIELD_ORDER = ["firstName","lastName","nationalCode","fatherName","mobile","village"];
 const LOCAL_KEY = "damdarRecords";
 
-/* ============================================================
-   حالت محلی (localStorage)
-   ============================================================ */
+function esc(s){
+  return String(s == null ? "" : s)
+    .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;").replace(/'/g,"&#39;");
+}
+
+/* ---------- حافظه محلی ---------- */
 function getLocalRecords(){
-  try{
-    return JSON.parse(localStorage.getItem(LOCAL_KEY)) || [];
-  }catch(e){ return []; }
+  try{ return JSON.parse(localStorage.getItem(LOCAL_KEY)) || []; }
+  catch(e){ return []; }
 }
 function saveLocalRecords(records){
   localStorage.setItem(LOCAL_KEY, JSON.stringify(records));
 }
 
-// جستجوی هوشمند: هر کلمه از عبارت جستجو باید جایی در میان
-// نام، نام‌خانوادگی، کد ملی یا موبایل پیدا بشه (نه لزوماً هر کلمه در یک فیلد)
-// این باعث می‌شه هم جستجوی تکی (فقط نام یا فقط فامیل) و هم
-// جستجوی ترکیبی (نام و فامیل با هم) درست کار کنه.
+// هر کلمه باید در مجموعه نام، فامیل، کد ملی و موبایل باشد
 function matchRecord(rec, q){
   q = q.trim().toLowerCase();
   if(!q) return false;
   const combined = ["firstName","lastName","nationalCode","mobile"]
-    .map(f => (rec[f]||"").toString().toLowerCase())
-    .join(" ");
-  const words = q.split(/\s+/).filter(Boolean);
-  return words.every(w => combined.includes(w));
+    .map(f => (rec[f]||"").toString().toLowerCase()).join(" ");
+  return q.split(/\s+/).filter(Boolean).every(w => combined.includes(w));
 }
-function searchLocal(q){
-  return getLocalRecords().filter(r=>matchRecord(r,q));
+function searchLocal(q){ return getLocalRecords().filter(r => matchRecord(r,q)); }
+
+// اضافه یا جایگزین کردن یک رکورد در حافظه محلی (بر اساس کد ملی قبلی)
+function upsertLocal(rec, oldNationalCode){
+  const list = getLocalRecords();
+  const key = oldNationalCode || rec.nationalCode;
+  const i = list.findIndex(r => r.nationalCode === key);
+  if(i !== -1) list[i] = rec; else list.push(rec);
+  saveLocalRecords(list);
+  return i !== -1;
 }
 
-/* ============================================================
-   حالت آنلاین (Google Apps Script)
-   ============================================================ */
+/* ---------- ارتباط با گوگل شیت ---------- */
 async function searchOnline(q){
-  const url = `${SCRIPT_URL}?action=search&query=${encodeURIComponent(q)}`;
-  const res = await fetch(url);
-  if(!res.ok) throw new Error("خطا در ارتباط با سرور");
+  const res = await fetch(`${SCRIPT_URL}?action=search&query=${encodeURIComponent(q)}`);
+  if(!res.ok) throw new Error("server");
   const data = await res.json();
   return Array.isArray(data) ? data : (data.results || []);
 }
-
-async function updateOnline(record){
+async function postToScript(payload){
   const res = await fetch(SCRIPT_URL, {
     method: "POST",
     headers: {"Content-Type":"text/plain;charset=utf-8"},
-    body: JSON.stringify({ action:"update", record })
+    body: JSON.stringify(payload)
   });
-  if(!res.ok) throw new Error("خطا در ارسال به سرور");
+  if(!res.ok) throw new Error("server");
   return res.json().catch(()=>({}));
 }
+function updateOnline(record, oldNationalCode){
+  return postToScript({ action:"update", record, oldNationalCode: oldNationalCode || "" });
+}
 
-/* ============================================================
-   نمایش نتایج (کارت‌های دامدار)
-   ============================================================ */
+/* ---------- نمایش نتایج ---------- */
+let CURRENT_RESULTS = [];
+
 function render(records, source, container, editable){
+  CURRENT_RESULTS = records;
   container.innerHTML = "";
-  records.forEach(rec=>{
+  records.forEach((rec, idx) => {
     const card = document.createElement("div");
     card.className = "result-card";
-    const tag = source==="local"
-      ? `<span class="source-tag source-local">📱 حافظه دستگاه</span>`
-      : `<span class="source-tag source-online">☁️ گوگل شیت مرکزی</span>`;
-    let rowsHtml = "";
-    Object.keys(FIELD_LABELS).forEach(key=>{
+    const tag = source === "local"
+      ? `<span class="source-tag local-tag">📱 حافظه دستگاه</span>`
+      : `<span class="source-tag online-tag">☁️ سرور مرکزی</span>`;
+    let fields = "";
+    FIELD_ORDER.forEach(key => {
       const val = rec[key];
-      if(val===undefined || val==="") return;
-      rowsHtml += `<div class="field-row"><span class="k">${FIELD_LABELS[key]}</span><span class="v">${val}</span></div>`;
+      if(val === undefined || val === "") return;
+      fields += `
+        <div class="field-item">
+          <div class="field-icon">${FIELD_ICONS[key]}</div>
+          <div class="field-content">
+            <div class="field-label">${FIELD_LABELS[key]}</div>
+            <div class="field-value">${esc(val)}</div>
+          </div>
+        </div>`;
     });
-    card.innerHTML = `
-      ${tag}
-      <h3>${rec.firstName||""} ${rec.lastName||""}</h3>
-      ${rowsHtml}
-      ${editable ? `<div class="edit-actions"><button class="btn-secondary btn-small" onclick='openEditForm(${JSON.stringify(rec).replace(/'/g,"&#39;")})'>ویرایش این رکورد</button></div>` : ""}
-    `;
+    const actions = editable
+      ? `<div class="card-actions"><button class="btn-edit" onclick="openEditForm(${idx})">✏️ ویرایش</button></div>`
+      : "";
+    card.innerHTML = `${tag}
+      <div class="card-header"><h3>🐑 ${esc(rec.firstName)} ${esc(rec.lastName)}</h3></div>
+      <div class="card-fields">${fields}</div>${actions}`;
     container.appendChild(card);
   });
 }
 
-/* ============================================================
-   جستجوی عمومی (هم برای صفحه اصلی، هم بخش مدیر)
-   اول محلی، بعد آنلاین
-   ============================================================ */
+/* ---------- جستجو ---------- */
 async function performSearch(q, statusEl, resultsEl, editable){
   resultsEl.innerHTML = "";
-  if(!q){ statusEl.textContent="لطفاً یک عبارت برای جستجو وارد کنید."; statusEl.className="status err"; return; }
-
-  statusEl.textContent = "در حال جستجو...";
-  statusEl.className = "status warn";
-
-  const localMatches = searchLocal(q);
-  if(localMatches.length){
-    render(localMatches, "local", resultsEl, editable);
-    statusEl.textContent = `${localMatches.length} نتیجه از حافظه دستگاه پیدا شد.`;
-    statusEl.className = "status ok";
+  q = (q || "").trim();
+  if(!q){
+    statusEl.innerHTML = "🔍 یک نام یا شماره برای جستجو وارد کنید";
+    statusEl.className = "status info";
     return;
   }
+  statusEl.innerHTML = "⏳ در حال جستجو...";
+  statusEl.className = "status loading";
 
+  const local = searchLocal(q);
+  if(local.length){
+    render(local, "local", resultsEl, editable);
+    statusEl.innerHTML = `✅ ${local.length} نتیجه در دستگاه پیدا شد`;
+    statusEl.className = "status success";
+    return;
+  }
   if(!navigator.onLine){
-    statusEl.textContent = "نتیجه‌ای در دستگاه پیدا نشد و اینترنت وصل نیست.";
-    statusEl.className = "status err";
+    statusEl.innerHTML = "⚠️ اینترنت وصل نیست و نتیجه‌ای در دستگاه پیدا نشد";
+    statusEl.className = "status error";
     return;
   }
   try{
-    const onlineMatches = await searchOnline(q);
-    if(onlineMatches.length){
-      render(onlineMatches, "online", resultsEl, editable);
-      statusEl.textContent = `${onlineMatches.length} نتیجه از گوگل شیت مرکزی پیدا شد.`;
-      statusEl.className = "status ok";
-    } else {
-      resultsEl.innerHTML = `<div class="no-result">هیچ دامداری با این مشخصات پیدا نشد.</div>`;
-      statusEl.textContent = "";
+    const online = await searchOnline(q);
+    if(online.length){
+      render(online, "online", resultsEl, editable);
+      statusEl.innerHTML = `✅ ${online.length} نتیجه از سرور مرکزی پیدا شد`;
+      statusEl.className = "status success";
+    }else{
+      resultsEl.innerHTML = `<div class="no-result">❌ هیچ دامداری با این مشخصات پیدا نشد</div>`;
+      statusEl.innerHTML = "";
+      statusEl.className = "";
     }
   }catch(e){
-    statusEl.textContent = "خطا در جستجوی آنلاین. اتصال اینترنت را بررسی کنید.";
-    statusEl.className = "status err";
+    statusEl.innerHTML = "⚠️ خطا در جستجوی آنلاین. دوباره تلاش کنید";
+    statusEl.className = "status error";
   }
+}
+
+/* ---------- ویرایش (فقط admin) ---------- */
+let EDITING_RECORD = null;
+
+function openEditForm(idx){
+  const record = CURRENT_RESULTS[idx];
+  if(!record) return;
+  EDITING_RECORD = record;
+  const fields = FIELD_ORDER.map(key => `
+    <div class="form-field">
+      <label for="edit_${key}">${FIELD_ICONS[key]} ${FIELD_LABELS[key]}</label>
+      <input type="text" id="edit_${key}" class="form-input" value="${esc(record[key])}" />
+    </div>`).join("");
+  const modal = document.createElement("div");
+  modal.id = "editModal";
+  modal.innerHTML = `
+    <div class="modal-overlay" onclick="closeEditForm()">
+      <div class="modal-dialog" onclick="event.stopPropagation()">
+        <div class="modal-header">
+          <h2>✏️ ویرایش اطلاعات دامدار</h2>
+          <button class="modal-close" onclick="closeEditForm()">✕</button>
+        </div>
+        <div class="modal-body">${fields}</div>
+        <div class="modal-footer">
+          <button class="btn-primary" onclick="saveEditedRecord()">💾 ذخیره تغییرات</button>
+          <button class="btn-secondary" onclick="closeEditForm()">انصراف</button>
+        </div>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+}
+
+function closeEditForm(){
+  const m = document.getElementById("editModal");
+  if(m) m.remove();
+  EDITING_RECORD = null;
+}
+
+async function saveEditedRecord(){
+  if(!EDITING_RECORD) return;
+  const old = EDITING_RECORD;
+  const updated = {};
+  FIELD_ORDER.forEach(k => { updated[k] = document.getElementById("edit_"+k).value.trim(); });
+
+  const empty = FIELD_ORDER.filter(k => !updated[k]);
+  if(empty.length){
+    alert("⚠️ این فیلدها نباید خالی باشند:\n" + empty.map(k => FIELD_LABELS[k]).join("\n"));
+    return;
+  }
+  upsertLocal(updated, old.nationalCode);   // اگر در حافظه دستگاه بود، اصلاح می‌شود
+
+  let onlineOk = true;
+  if(navigator.onLine){
+    try{ await updateOnline(updated, old.nationalCode); }
+    catch(e){ onlineOk = false; }
+  }else{
+    onlineOk = false;
+  }
+  closeEditForm();
+  alert(onlineOk
+    ? "✅ تغییرات ذخیره شد."
+    : "⚠️ تغییرات فقط روی این دستگاه ذخیره شد. اینترنت وصل نبود یا ارسال به گوگل شیت انجام نشد.");
+  const btn = document.getElementById("searchInput");
+  if(btn && typeof doSearch === "function") doSearch();
 }

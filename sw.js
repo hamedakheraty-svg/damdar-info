@@ -1,18 +1,17 @@
-const CACHE_NAME = "damdar-app-v7";
+const CACHE_NAME = "damdar-app-v9";
 const ASSETS = [
   "./",
   "./index.html",
+  "./admin.html",
   "./manifest.json",
   "./icon-192.png",
   "./icon-512.png",
-  "./common.css",
-  "./common.js"
+  "./common.js",
+  "./xlsx.full.min.js"
 ];
 
 self.addEventListener("install", (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS))
-  );
+  event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS)));
   self.skipWaiting();
 });
 
@@ -27,21 +26,21 @@ self.addEventListener("activate", (event) => {
 
 self.addEventListener("fetch", (event) => {
   const req = event.request;
+  if (req.method !== "GET") return;
 
-  // Always go to network for Google Apps Script calls (search / sync)
-  if (req.url.includes("script.google.com")) {
+  // تماس با گوگل اسکریپت همیشه از اینترنت
+  if (req.url.includes("script.google.com") || req.url.includes("googleusercontent.com")) {
     event.respondWith(fetch(req).catch(() => new Response("[]", { headers: { "Content-Type": "application/json" } })));
     return;
   }
 
-  // App shell: cache-first, fall back to network
   event.respondWith(
-    caches.match(req).then((cached) => {
-      return cached || fetch(req).then((res) => {
-        const resClone = res.clone();
-        caches.open(CACHE_NAME).then((cache) => cache.put(req, resClone));
+    caches.match(req).then((cached) =>
+      cached || fetch(req).then((res) => {
+        const copy = res.clone();
+        caches.open(CACHE_NAME).then((c) => c.put(req, copy));
         return res;
-      }).catch(() => cached);
-    })
+      }).catch(() => cached)
+    )
   );
 });
