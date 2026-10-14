@@ -1,4 +1,4 @@
-const CACHE_NAME = "damdar-app-v11";
+const CACHE_NAME = "damdar-app-v12";
 const ASSETS = [
   "./",
   "./index.html",
@@ -30,7 +30,7 @@ self.addEventListener("fetch", (event) => {
 
   // تماس با گوگل اسکریپت همیشه از اینترنت
   if (req.url.includes("script.google.com") || req.url.includes("googleusercontent.com")) {
-    event.respondWith(fetch(req).catch(() => new Response("[]", { headers: { "Content-Type": "application/json" } })));
+    event.respondWith(fetch(req).catch(() => new Response("", { status: 503 })));   // خطا برگردد، نه لیست خالی
     return;
   }
 
