@@ -105,6 +105,15 @@ function render(records, source, container, editable){
 }
 
 /* ---------- جستجو ---------- */
+// اولویت با گوگل شیت است تا نتیجه روی همه دستگاه‌ها یکی باشد.
+// حافظه دستگاه فقط وقتی استفاده می‌شود که اینترنت یا سرور در دسترس نباشد.
+function withTimeout(promise, ms){
+  return Promise.race([
+    promise,
+    new Promise((_, rej) => setTimeout(() => rej(new Error("timeout")), ms))
+  ]);
+}
+
 async function performSearch(q, statusEl, resultsEl, editable){
   resultsEl.innerHTML = "";
   q = (q || "").trim();
@@ -116,31 +125,38 @@ async function performSearch(q, statusEl, resultsEl, editable){
   statusEl.innerHTML = "⏳ در حال جستجو...";
   statusEl.className = "status loading";
 
+  let serverReached = false;
+  if(navigator.onLine){
+    try{
+      const online = await withTimeout(searchOnline(q), 15000);
+      serverReached = true;
+      if(online.length){
+        render(online, "online", resultsEl, editable);
+        statusEl.innerHTML = `✅ ${online.length} نتیجه از سرور مرکزی`;
+        statusEl.className = "status success";
+        return;
+      }
+    }catch(e){ /* سرور در دسترس نبود؛ می‌رویم سراغ حافظه دستگاه */ }
+  }
+
   const local = searchLocal(q);
   if(local.length){
     render(local, "local", resultsEl, editable);
-    statusEl.innerHTML = `✅ ${local.length} نتیجه در دستگاه پیدا شد`;
-    statusEl.className = "status success";
+    statusEl.innerHTML = serverReached
+      ? `⚠️ ${local.length} نتیجه فقط روی این دستگاه ذخیره شده و هنوز به سرور نرسیده`
+      : `⚠️ اتصال به سرور برقرار نشد؛ ${local.length} نتیجه از حافظه دستگاه (ممکن است کامل نباشد)`;
+    statusEl.className = "status warn";
     return;
   }
-  if(!navigator.onLine){
-    statusEl.innerHTML = "⚠️ اینترنت وصل نیست و نتیجه‌ای در دستگاه پیدا نشد";
-    statusEl.className = "status error";
-    return;
-  }
-  try{
-    const online = await searchOnline(q);
-    if(online.length){
-      render(online, "online", resultsEl, editable);
-      statusEl.innerHTML = `✅ ${online.length} نتیجه از سرور مرکزی پیدا شد`;
-      statusEl.className = "status success";
-    }else{
-      resultsEl.innerHTML = `<div class="no-result">❌ هیچ دامداری با این مشخصات پیدا نشد</div>`;
-      statusEl.innerHTML = "";
-      statusEl.className = "";
-    }
-  }catch(e){
-    statusEl.innerHTML = "⚠️ خطا در جستجوی آنلاین. دوباره تلاش کنید";
+
+  if(serverReached){
+    resultsEl.innerHTML = `<div class="no-result">❌ هیچ دامداری با این مشخصات پیدا نشد</div>`;
+    statusEl.innerHTML = "";
+    statusEl.className = "";
+  }else{
+    statusEl.innerHTML = navigator.onLine
+      ? "⚠️ اتصال به سرور برقرار نشد. اگر VPN دارید روشن کنید و دوباره تلاش کنید"
+      : "⚠️ اینترنت وصل نیست و نتیجه‌ای در حافظه دستگاه پیدا نشد";
     statusEl.className = "status error";
   }
 }

@@ -501,6 +501,16 @@ button {
   </div>
 </div>
 
+<div class="section">
+  <h2>🧹 حافظه این دستگاه</h2>
+  <div style="font-size:13px;color:#555;line-height:1.8;margin-bottom:12px">
+    جستجو همیشه اول از گوگل شیت انجام می‌شود. نسخه ذخیره‌شده روی این دستگاه فقط برای وقتی است که اینترنت نباشد.
+    اگر فکر می‌کنی نسخه قدیمی یا اشتباه روی این دستگاه مانده، آن را پاک کن (به گوگل شیت دست نمی‌زند).
+  </div>
+  <button class="btn-secondary" onclick="clearLocalCache()">🧹 پاک کردن حافظه این دستگاه</button>
+  <span id="cacheInfo" style="margin-right:10px;font-size:13px;color:#555"></span>
+</div>
+
 <div class="hint">
   💡 برای ویرایش رکورد موجود بالا جستجو کنید و دکمه "ویرایش" را بزنید
 </div>
@@ -627,6 +637,18 @@ async function importExcel(){
     st.textContent="⚠️ خطا در ورود اطلاعات. فایل یا اینترنت را بررسی کنید و دوباره تلاش کنید.";
   }
 }
+
+function updateCacheInfo(){
+  const el=document.getElementById("cacheInfo");
+  if(el) el.textContent="تعداد رکورد روی این دستگاه: "+getLocalRecords().length;
+}
+function clearLocalCache(){
+  if(!confirm("حافظه این دستگاه پاک شود؟ اطلاعات گوگل شیت دست نمی‌خورد.")) return;
+  localStorage.removeItem(LOCAL_KEY);
+  updateCacheInfo();
+  alert("✅ حافظه این دستگاه پاک شد.");
+}
+updateCacheInfo();
 
 function clearForm(){
   document.getElementById("form_firstName").value = "";
